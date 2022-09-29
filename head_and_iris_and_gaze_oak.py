@@ -18,6 +18,7 @@ from custom.iris_lm_depth import from_landmarks_to_depth
 from face_detector import FaceDetector
 from model import L2CS
 from utils import draw_gaze
+import time
 
 enable_head_pose = True
 enable_iris_detection = True
@@ -34,7 +35,7 @@ points_idx = list(set(points_idx))
 points_idx.sort()
 
 iris_points_idx = [33, 133, 362, 263, 61, 291, 199]
-iris_points_idx = list(set(points_idx))
+iris_points_idx = list(set(iris_points_idx))
 iris_points_idx.sort()
 
 left_eye_landmarks_id = np.array([33, 133])
@@ -136,6 +137,7 @@ def main():
     ) as face_mesh:
 
         while True:
+            start_fps = time.time()
             frame = qRgb.get().getCvFrame()
             cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_rgb = np.asarray(Image.fromarray(cv2_im_rgb), dtype=np.uint8)
@@ -268,7 +270,7 @@ def main():
                     for ii in iris_points_idx:
                         pos = (np.array(image_size) * landmarks[:2, ii]).astype(np.int32)
                         frame = cv2.circle(frame, tuple(pos), LARGE_CIRCLE_SIZE, GREEN, -1)
-
+                    
                     # draw eye contours
                     eye_landmarks = np.concatenate(
                         [
@@ -305,6 +307,8 @@ def main():
                         2,
                         cv2.LINE_AA,
                     )
+            FPS = 1.0 / (time.time() - start_fps)
+            cv2.putText(frame, 'FPS: {:.1f}'.format(FPS), (frame_width - 150, 20),cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 0, 0), 1, cv2.LINE_AA)
 
             cv2.imshow("Eye Tracking", frame)
             cv2.waitKey(1)
