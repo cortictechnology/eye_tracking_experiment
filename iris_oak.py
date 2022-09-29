@@ -44,7 +44,7 @@ def main():
     camRgb.preview.link(xoutRgb.input)
     device.startPipeline(pipeline)
     
-    qRgb = device.getOutputQueue("rgb", 8)
+    qRgb = device.getOutputQueue("rgb", 1)
 
     # pseudo camera internals
     focal_length = (K_col[0,0] + K_col[1, 1]) / 2
