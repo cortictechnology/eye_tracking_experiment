@@ -13,7 +13,7 @@ conda init zsh
 
 # Close and re-open a Terminal window
 
-# Install DepthAI by building a M1 wheel (inside ~/DepthAI/)
+# Setup a conda environment
 conda create -y --name EyeTracking python=3.9
 conda activate EyeTracking
 ```
