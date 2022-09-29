@@ -11,7 +11,7 @@ import torch.backends.cudnn as cudnn
 import torchvision
 
 from PIL import Image
-from utils import select_device, draw_gaze
+from utils import draw_gaze
 from PIL import Image, ImageOps
 
 from face_detector import FaceDetector

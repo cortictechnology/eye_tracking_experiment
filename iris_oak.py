@@ -117,11 +117,6 @@ def main():
                         + left_depth * smooth_factor
                     )
 
-#                print(
-#                    f"depth in cm: {smooth_left_depth / 10:.2f}, {smooth_right_depth / 10:.2f}"
-#                )
-#                print(f"size: {left_iris_size:.2f}, {right_iris_size:.2f}")
-#            print("Total time:", time.time() - t1)
             if landmarks is not None:
 
                 # draw subset of facemesh
