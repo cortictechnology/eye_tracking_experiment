@@ -33,5 +33,5 @@ pip3 install depthai scipy scikit-image
 # To Run
 
 ```
-python3 head_and_iris_and_gaze_oak.py
+python3 main.py
 ```
