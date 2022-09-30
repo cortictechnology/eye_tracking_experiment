@@ -27,7 +27,7 @@ pip3 install tensorflow-macos
 pip3 install tensorflow-metal
 pip3 install mediapipe-silicon
 conda install -y pytorch torchvision torchaudio -c pytorch-nightly
-pip3 install depthai scipy
+pip3 install depthai scipy scikit-image
 ```
 
 # To Run

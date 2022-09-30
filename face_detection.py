@@ -14,7 +14,7 @@ import math
 import os
 import logging
 
-class FaceDetector:
+class FaceDetection:
     def __init__(self):
         self.input_width = 128
         self.input_height = 128
@@ -75,7 +75,7 @@ class FaceDetector:
             None,
             self.value,
         )
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         img = img.astype("float32")
         img = cv2.normalize(img, None, -1, 1, cv2.NORM_MINMAX)
@@ -311,3 +311,51 @@ class FaceDetector:
         processed_data = self.process_data(preprocessed_data)
         postprocessed_data = self.postprocess_result(processed_data)
         return postprocessed_data
+
+    def draw_disconnected_rect(self, frame, pt1, pt2, color, thickness):
+        img = frame
+        width = pt2[0] - pt1[0]
+        height = pt2[1] - pt1[1]
+        line_width = min(20, width // 4)
+        line_height = min(20, height // 4)
+        line_length = max(line_width, line_height)
+        cv2.line(img, pt1, (pt1[0] + line_length, pt1[1]), color, thickness)
+        cv2.line(img, pt1, (pt1[0], pt1[1] + line_length), color, thickness)
+        cv2.line(
+            img, (pt2[0] - line_length, pt1[1]
+                  ), (pt2[0], pt1[1]), color, thickness
+        )
+        cv2.line(
+            img, (pt2[0], pt1[1]), (pt2[0], pt1[1] +
+                                    line_length), color, thickness
+        )
+        cv2.line(
+            img, (pt1[0], pt2[1]), (pt1[0] +
+                                    line_length, pt2[1]), color, thickness
+        )
+        cv2.line(
+            img, (pt1[0], pt2[1] - line_length), (pt1[0],
+                                                  pt2[1]), color, thickness
+        )
+        cv2.line(img, pt2, (pt2[0] - line_length, pt2[1]), color, thickness)
+        cv2.line(img, (pt2[0], pt2[1] - line_length), pt2, color, thickness)
+        return img
+
+    def norm2abs(self, x_y, frame_size, pad_w, pad_h):
+        x = int(x_y[0] * frame_size - pad_w)
+        y = int(x_y[1] * frame_size - pad_h)
+        return (x, y)
+
+    def draw_detected_face(self, frame, detected_faces):
+        if frame is not None and detected_faces is not None:
+            for face in detected_faces:
+                frame_width = frame.shape[1]
+                frame_height = frame.shape[0]
+                for face in detected_faces:
+                    face_coordinates = face['face_coordinates']
+                    x1 = int(face_coordinates[0] * frame_width)
+                    y1 = int(face_coordinates[1] * frame_height)
+                    x2 = int(face_coordinates[2] * frame_width)
+                    y2 = int(face_coordinates[3] * frame_height)
+                    frame = self.draw_disconnected_rect(frame, (x1, y1), (x2, y2), (234, 187, 105), 2)
+        return frame
