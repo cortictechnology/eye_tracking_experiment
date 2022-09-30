@@ -37,8 +37,7 @@ class GazeEstimation:
         pitch = []
         yaw = []
         if frame is not None and detected_faces is not None:
-            for face in detected_faces:
-                face_coordinates = face['face_coordinates']
+            for face_coordinates in detected_faces:
                 x_min = int(face_coordinates[0] * self.frame_width)
                 y_min = int(face_coordinates[1] * self.frame_height)
                 x_max = int(face_coordinates[2] * self.frame_width)
@@ -82,8 +81,7 @@ class GazeEstimation:
     def draw_gaze(self, frame, detected_faces, pitch, yaw):
         if frame is not None and detected_faces is not None and pitch is not None and yaw is not None:
             for i in range(len(detected_faces)):
-                face = detected_faces[i]
-                face_coordinates = face['face_coordinates']
+                face_coordinates = detected_faces[i]
                 x_min = int(face_coordinates[0] * self.frame_width)
                 y_min = int(face_coordinates[1] * self.frame_height)
                 x_max = int(face_coordinates[2] * self.frame_width)
