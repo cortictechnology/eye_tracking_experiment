@@ -94,17 +94,17 @@ class IrisDetection:
             frame = cv2.circle(frame, tuple(pos), SMALL_CIRCLE_SIZE, YELLOW, -1)
 
         # write depth values into frame
-        depth_string = "{:.2f}cm, {:.2f}cm".format(
-            left_depth, right_depth
-        )
-        frame = cv2.putText(
-            frame,
-            depth_string,
-            (50, 50),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            GREEN,
-            2,
-            cv2.LINE_AA,
-        )
+        # depth_string = "{:.2f}cm, {:.2f}cm".format(
+        #     left_depth, right_depth
+        # )
+        # frame = cv2.putText(
+        #     frame,
+        #     depth_string,
+        #     (50, 50),
+        #     cv2.FONT_HERSHEY_SIMPLEX,
+        #     1,
+        #     GREEN,
+        #     2,
+        #     cv2.LINE_AA,
+        # )
         return frame

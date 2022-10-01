@@ -62,6 +62,7 @@ class VideoCapture:
             # LR-check is required for depth alignment
             stereo.setLeftRightCheck(True)
             stereo.setSubpixel(False)
+            stereo.setExtendedDisparity(True)
             stereo.setDepthAlign(dai.CameraBoardSocket.RGB)
 
             # Config
