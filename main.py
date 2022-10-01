@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import time
+import csv
 from video_capture import VideoCapture
 from face_alignment import FaceAlignment
 from facemesh_estimation import FaceMeshEstimation
@@ -15,7 +16,63 @@ EAR_THRESH = 0.1
 record_data = False
 
 def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances):
-    pass
+    right_eye_pixels = []
+    left_eye_pixels = []
+    right_eye_metric = []
+    left_eye_metric = []
+    warpped_right_eye_pixels = []
+    warpped_left_eye_pixels = []
+
+    for i in range(len(pixel_distances)):
+        pixel = pixel_distances[i]
+        left_eye_pixels.append([i, pixel[0]])
+        right_eye_pixels.append([i, pixel[1]])
+
+    fields = ['Frame', 'Pixel Distance'] 
+    with open('right_eye_pixel.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(right_eye_pixels)
+    with open('left_eye_pixel.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(left_eye_pixels)
+
+    for i in range(len(metric_distances)):
+        metric = metric_distances[i]
+        left_eye_metric.append([i, metric[0]])
+        right_eye_metric.append([i, metric[1]])
+
+    fields = ['Frame', 'Metric Distance'] 
+    with open('right_eye_metric.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(right_eye_metric)
+    with open('left_eye_metric.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(left_eye_metric)
+
+    for i in range(len(aligned_pixel_distances)):
+        pixel = pixel_distances[i]
+        warpped_left_eye_pixels.append([i, pixel[0]])
+        warpped_right_eye_pixels.append([i, pixel[1]])
+
+    fields = ['Frame', 'Warpped Pixel Distance'] 
+    with open('warpped_right_eye_pixel.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(warpped_right_eye_pixels)
+    with open('warpped_left_eye_pixel.csv', 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(warpped_left_eye_pixels)
 
 def main(use_depth):
     global record_data
@@ -70,14 +127,16 @@ def main(use_depth):
             key = cv2.waitKey(1)
             if key == ord('q'):
                 break
-            elif key == "r":
+            elif key == ord("r"):
                 if record_data:
+                    print("Stop data recording")
                     record_data = False
                     save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances)
                     pixel_distances = []
                     metric_distances = []
                     aligned_pixel_distances = []
                 else:
+                    print("Start recording data")
                     record_data = True
 
 if __name__ == "__main__":
