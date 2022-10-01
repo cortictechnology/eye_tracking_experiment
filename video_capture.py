@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import depthai as dai
 from PIL import Image
+import time
 
 class VideoCapture:
     def __init__(self, use_1080p=False, use_depth=False):

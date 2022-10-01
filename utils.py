@@ -35,24 +35,24 @@ def angular(gaze, label):
   total = np.sum(gaze * label)
   return np.arccos(min(total/(np.linalg.norm(gaze)* np.linalg.norm(label)), 0.9999999))*180/np.pi
 
-def eye_converter(video, left_eye_2d, right_eye_2d, face_center_p1_2d, face_center_p2_2d, warpped=False, left_eye_depth_mm=None, right_eye_depth_mm=None):
+def eye_converter(frame, video, left_eye_2d, right_eye_2d, face_center_p1_2d, face_center_p2_2d, warpped=False, left_eye_depth_mm=None, right_eye_depth_mm=None):
     p1 = face_center_p1_2d[:2]
     p2 = face_center_p2_2d[:2]
-    # frame = cv2.line(frame, (int(p1[0] * video.frame_width), int(p1[1] * video.frame_height)), (int(p2[0] * video.frame_width), int(p2[1] * video.frame_height)), (0, 0, 255), 1) 
+    #frame = cv2.line(frame, (int(p1[0] * video.frame_width), int(p1[1] * video.frame_height)), (int(p2[0] * video.frame_width), int(p2[1] * video.frame_height)), (0, 0, 255), 1) 
     p3 = left_eye_2d[:2]
     p4 = right_eye_2d[:2]
-    # frame = cv2.line(frame, (int(p3[0] * video.frame_width), int(p3[1] * video.frame_height)), (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height)), (0, 255, 0), 1) 
+    #frame = cv2.line(frame, (int(p3[0] * video.frame_width), int(p3[1] * video.frame_height)), (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height)), (0, 255, 0), 1) 
 
     denom = ((p1[0] - p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] - p4[0]))
     origin_x = ((p1[0] * p2[1] - p1[1] * p2[0]) * (p3[0] - p4[0]) - (p1[0] - p2[0]) * (p3[0] * p4[1] - p3[1] * p4[0])) / denom
     origin_y = ((p1[0] * p2[1] - p1[1] * p2[0]) * (p3[1] - p4[1]) - (p1[1] - p2[1]) * (p3[0] * p4[1] - p3[1] * p4[0])) / denom
-    # frame = cv2.circle(frame, (int(origin_x * video.frame_width), int(origin_y * video.frame_height)), 5, (255, 0, 0), -1)
+    #frame = cv2.circle(frame, (int(origin_x * video.frame_width), int(origin_y * video.frame_height)), 5, (255, 0, 0), -1)
     if (warpped):
         left_eye_dist_px = np.sqrt((((p3[0] - origin_x) * video.frame_width) ** 2 + ((p3[1] - origin_y) * video.frame_height) ** 2))
         right_eye_dist_px = np.sqrt((((p4[0] - origin_x) * video.frame_width) ** 2 + ((p4[1] - origin_y) * video.frame_height) ** 2))
-        frame = cv2.putText(frame, f"{int(left_eye_dist_px)} px", (int(p3[0] * video.frame_width), int(p3[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255))
-        frame = cv2.putText(frame, f"{int(right_eye_dist_px)} px", (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255))
-        # cv2.imshow("Eye distance", frame)
+        #frame = cv2.putText(frame, f"{int(left_eye_dist_px)} px", (int(p3[0] * video.frame_width), int(p3[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255))
+        #frame = cv2.putText(frame, f"{int(right_eye_dist_px)} px", (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255))
+        #cv2.imshow("Eye distance (Warpped)", frame)
         return (left_eye_dist_px, right_eye_dist_px), None
     else:
 
@@ -61,17 +61,15 @@ def eye_converter(video, left_eye_2d, right_eye_2d, face_center_p1_2d, face_cent
 
         eye_dist_2d_px = left_eye_dist_px + right_eye_dist_px
         eye_dist_2d_mm = eye_dist_2d_px / video.focal_length * left_eye_depth_mm
-        print(eye_dist_2d_mm)
+        #print(eye_dist_2d_mm)
         
         eye_dist_mm = np.sqrt(eye_dist_2d_mm ** 2 + (left_eye_depth_mm - right_eye_depth_mm) ** 2)
         left_eye_dist_mm = left_eye_dist_px / eye_dist_2d_px * eye_dist_mm
         right_eye_dist_mm = eye_dist_mm - left_eye_dist_mm
-        # frame = cv2.putText(frame, f"{int(left_eye_dist_px)}px, {int(left_eye_dist_mm)}mm", (int(p3[0] * video.frame_width) - 50, int(p3[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 0))
-        # frame = cv2.putText(frame, f"{int(right_eye_dist_px)}px, {int(right_eye_dist_mm)}mm", (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height) + 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 0))
-        # cv2.imshow("Eye distance", frame)
+        #frame = cv2.putText(frame, f"{int(left_eye_dist_px)}px, {int(left_eye_dist_mm)}mm", (int(p3[0] * video.frame_width) - 50, int(p3[1] * video.frame_height) + 20), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 255, 0))
+        #frame = cv2.putText(frame, f"{int(right_eye_dist_px)}px, {int(right_eye_dist_mm)}mm", (int(p4[0] * video.frame_width), int(p4[1] * video.frame_height) + 50), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (255, 255, 0))
+        #cv2.imshow("Eye distance (Unwarpped)", frame)
         return (left_eye_dist_px, right_eye_dist_px), (left_eye_dist_mm, right_eye_dist_mm)
-
-
 
 def draw_gaze(a,b,c,d,image_in, pitchyaw, thickness=2, color=(255, 255, 0),sclae=2.0):
     """Draw gaze angle on given image with a given eye positions."""

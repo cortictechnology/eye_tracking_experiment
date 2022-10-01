@@ -3,6 +3,9 @@ import numpy as np
 import cv2
 from PIL import Image
 
+# index of crop top left: 70
+# index of crop bottom right: 340
+
 class FaceMeshEstimation:
     def __init__(self, min_detection_confidence=0.5, min_tracking_confidence=0.5):
         self.min_detection_confidence = min_detection_confidence
@@ -15,7 +18,11 @@ class FaceMeshEstimation:
         self.landmarks = None
         self.face = None
         
-    def get_facemesh(self, frame_rgb):
+    def get_facemesh(self, frame, convert_rgb=False):
+        frame_rgb = frame
+        if convert_rgb:
+            cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_rgb = np.asarray(Image.fromarray(cv2_im_rgb), dtype=np.uint8)
         results = self.face_mesh_estimator.process(frame_rgb)
         multi_face_landmarks = results.multi_face_landmarks
 
@@ -73,4 +80,23 @@ class FaceMeshEstimation:
                 y2 = int(face_coordinates[3] * frame_height)
                 frame = self.draw_disconnected_rect(frame, (x1, y1), (x2, y2), (234, 187, 105), 2)
         return frame
+
+    def crop_eye_image(self, frame, landmarks):
+        xmin = int(landmarks[0, 70] * frame.shape[1])
+        ymin = int(landmarks[1, 70] * frame.shape[0])
+        xmax = int(landmarks[0, 340] * frame.shape[1])
+        ymax = int(landmarks[1, 340] * frame.shape[0])
+        if xmin < 0:
+            xmin = 0
+        if ymin < 0:
+            ymin = 0
+        if xmax >= frame.shape[1]:
+            xmax = frame.shape[1] - 1
+        if ymax >= frame.shape[0]:
+            ymax = frame.shape[0] - 1
+        crop_frame_width = xmax - xmin
+        crop_frame_height = ymax - ymin
+        cropped_eye_image = frame[ymin:ymax, xmin:xmax]
+
+        return crop_frame_width, crop_frame_height, cropped_eye_image
         

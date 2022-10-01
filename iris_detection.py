@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from custom.iris_lm_depth import from_landmarks_to_depth
+from PIL import Image
 
 YELLOW = (0, 255, 255)
 GREEN = (0, 255, 0)
@@ -27,10 +28,14 @@ class IrisDetection:
         self.smooth_right_depth = -1
         self.smooth_factor = 0.1
 
-    def get_iris(self, frame_rgb, landmarks):
+    def get_iris(self, frame, landmarks, convert_rgb=False):
         eye_landmarks = None
         iris_landmarks = None
-        if frame_rgb is not None and landmarks is not None:
+        if frame is not None and landmarks is not None:
+            frame_rgb = frame
+            if convert_rgb:
+                cv2_im_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_rgb = np.asarray(Image.fromarray(cv2_im_rgb), dtype=np.uint8)
             (
                 left_depth,
                 left_iris_size,
