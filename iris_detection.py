@@ -11,7 +11,7 @@ SMALL_CIRCLE_SIZE = 1
 LARGE_CIRCLE_SIZE = 2
 
 class IrisDetection:
-    def __init__(self, frame_width, frame_height, focal_length):
+    def __init__(self, frame_width, frame_height, focal_length, smooth_factor=0.1):
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.image_size = (self.frame_width, self.frame_height)
@@ -24,9 +24,11 @@ class IrisDetection:
         self.left_eye_landmarks_id = np.array([33, 133])
         self.right_eye_landmarks_id = np.array([362, 263])
         self.dist_coeff = np.zeros((4, 1))
+        self.left_iris_landmarks = None
+        self.right_iris_landmarks = None
         self.smooth_left_depth = -1
         self.smooth_right_depth = -1
-        self.smooth_factor = 0.1
+        self.smooth_factor = smooth_factor
 
     def get_iris(self, frame, landmarks, convert_rgb=False):
         eye_landmarks = None
@@ -62,22 +64,32 @@ class IrisDetection:
                 focal_length=self.focal_length,
             )
 
+            if self.left_iris_landmarks is None:
+                self.left_iris_landmarks = left_iris_landmarks
+            else:
+                self.left_iris_landmarks = left_iris_landmarks * (1 - self.smooth_factor) + self.smooth_factor * self.left_iris_landmarks
+
+            if self.right_iris_landmarks is None:
+                self.right_iris_landmarks = right_iris_landmarks
+            else:
+                self.right_iris_landmarks = right_iris_landmarks * (1 - self.smooth_factor) + self.smooth_factor * self.right_iris_landmarks
+
             if self.smooth_right_depth < 0:
                 self.smooth_right_depth = right_depth
             else:
                 self.smooth_right_depth = (
-                    self.smooth_right_depth * (1 - self.smooth_factor)
-                    + right_depth * self.smooth_factor
+                    self.smooth_right_depth * self.smooth_factor
+                    + right_depth * (1 - self.smooth_factor)
                 )
 
             if self.smooth_left_depth < 0:
                 self.smooth_left_depth = left_depth
             else:
                 self.smooth_left_depth = (
-                    self.smooth_left_depth * (1 - self.smooth_factor)
-                    + left_depth * self.smooth_factor
+                    self.smooth_left_depth * self.smooth_factor
+                    + left_depth * (1 - self.smooth_factor)
                 )
-        return right_iris_landmarks, left_iris_landmarks, self.smooth_left_depth / 10, self.smooth_right_depth / 10
+        return self.right_iris_landmarks, self.left_iris_landmarks, self.smooth_left_depth / 10, self.smooth_right_depth / 10
 
 
     def draw_iris(self, frame, right_iris_landmarks, left_iris_landmarks, left_depth, right_depth):

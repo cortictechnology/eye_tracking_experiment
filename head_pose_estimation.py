@@ -7,7 +7,7 @@ from custom.face_geometry import (  # isort:skip
 )
 
 class HeadPoseEstimation:
-    def __init__(self, frame_width, frame_height, camera_matrix):
+    def __init__(self, frame_width, frame_height, camera_matrix, smooth_factor=0.1):
         self.frame_width = frame_width
         self.frame_height = frame_height
         self.camera_matrix = camera_matrix
@@ -23,6 +23,9 @@ class HeadPoseEstimation:
             frame_width=self.frame_width,
             fy=self.camera_matrix[1, 1],
         )
+        self.mp_rotation_vector = None
+        self.mp_translation_vector = None
+        self.smooth_factor = smooth_factor
 
     def get_head_pose(self, landmarks):
         metric_landmarks = None
@@ -48,7 +51,16 @@ class HeadPoseEstimation:
             pose_transform_mat[1:3, :] = -pose_transform_mat[1:3, :]
             mp_rotation_vector, _ = cv2.Rodrigues(pose_transform_mat[:3, :3])
             mp_translation_vector = pose_transform_mat[:3, 3, None]
-        return metric_landmarks, pose_transform_mat, image_points, model_points, mp_rotation_vector, mp_translation_vector
+            if self.mp_rotation_vector is None:
+                self.mp_rotation_vector = mp_rotation_vector
+            else:
+                self.mp_rotation_vector = mp_rotation_vector * (1 - self.smooth_factor) + self.mp_rotation_vector * self.smooth_factor
+            
+            if self.mp_translation_vector is None:
+                self.mp_translation_vector = mp_translation_vector
+            else:
+                self.mp_translation_vector = mp_translation_vector * (1 - self.smooth_factor) + self.mp_translation_vector * self.smooth_factor
+        return metric_landmarks, pose_transform_mat, image_points, model_points, self.mp_rotation_vector, self.mp_translation_vector
 
     def draw_head_pose(self, frame, model_points, mp_rotation_vector, mp_translation_vector):
         if frame is not None and model_points is not None and mp_rotation_vector is not None and mp_translation_vector is not None:

@@ -7,7 +7,7 @@ from PIL import Image
 # index of crop bottom right: 340
 
 class FaceMeshEstimation:
-    def __init__(self, min_detection_confidence=0.5, min_tracking_confidence=0.5):
+    def __init__(self, min_detection_confidence=0.5, min_tracking_confidence=0.5, smooth_factor=0.1):
         self.min_detection_confidence = min_detection_confidence
         self.min_tracking_confidence = min_tracking_confidence
         self.mp_face_mesh = mp.solutions.face_mesh
@@ -17,6 +17,7 @@ class FaceMeshEstimation:
                                                               min_tracking_confidence=self.min_tracking_confidence)
         self.landmarks = None
         self.face = None
+        self.smooth_factor = smooth_factor
         
     def get_facemesh(self, frame, convert_rgb=False):
         frame_rgb = frame
@@ -28,10 +29,13 @@ class FaceMeshEstimation:
 
         if multi_face_landmarks:
             face_landmarks = results.multi_face_landmarks[0]
-            self.landmarks = np.array(
+            face_landmarks = np.array(
                 [(lm.x, lm.y, lm.z) for lm in face_landmarks.landmark]
             )
-            self.landmarks = self.landmarks.T
+            if self.landmarks is None:
+                self.landmarks = face_landmarks.T
+            else:
+                self.landmarks = face_landmarks.T * (1 - self.smooth_factor) + self.smooth_factor * self.landmarks
             self.face = [[np.min(self.landmarks[0, :]), np.min(self.landmarks[1, :]), np.max(self.landmarks[0, :]), np.max(self.landmarks[1, :])]]
         return self.landmarks, self.face
 

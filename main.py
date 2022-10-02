@@ -9,7 +9,7 @@ from iris_detection import IrisDetection
 from head_pose_estimation import HeadPoseEstimation
 from gaze_estimation import GazeEstimation
 from blink_counter import BlinkCounter
-from utils import eye_converter, calculate_avg_ear
+from utils import eye_converter
 
 EAR_THRESH = 0.1
 
@@ -81,7 +81,7 @@ def main(use_depth):
     facemesh_estimator = FaceMeshEstimation()
     aligned_facemesh_estimator = FaceMeshEstimation()
     face_aligner = FaceAlignment(ref_photo, facemesh_estimator)
-    iris_detector = IrisDetection(video.frame_width, video.frame_height, video.focal_length)
+    iris_detector = IrisDetection(video.frame_width, video.frame_height, video.focal_length,smooth_factor=0.2)
     head_pose_estimator = HeadPoseEstimation(video.frame_width, video.frame_height, video.camera_matrix)
     gaze_estimator = GazeEstimation(video.frame_width, video.frame_height)
     blink_count = BlinkCounter(EAR_THRESH, video.frame_width, video.frame_height)
@@ -96,9 +96,10 @@ def main(use_depth):
             num_blinks = blink_count.count_blink(landmarks)
             right_iris_landmarks, left_iris_landmarks, left_depth, right_depth = iris_detector.get_iris(frame_rgb, landmarks)
             if use_depth:
-                left_eye_roi = [np.min(left_iris_landmarks[:, 0]), np.min(left_iris_landmarks[:, 1]), np.max(left_iris_landmarks[:, 0]), np.max(left_iris_landmarks[:, 1])]
-                right_eye_roi = [np.min(right_iris_landmarks[:, 0]), np.min(right_iris_landmarks[:, 1]), np.max(right_iris_landmarks[:, 0]), np.max(right_iris_landmarks[:, 1])]
-                eyes_depth = video.get_depth([left_eye_roi, right_eye_roi])
+                if right_iris_landmarks is not None and left_iris_landmarks is not None:
+                    left_eye_roi = [np.min(left_iris_landmarks[:, 0]), np.min(left_iris_landmarks[:, 1]), np.max(left_iris_landmarks[:, 0]), np.max(left_iris_landmarks[:, 1])]
+                    right_eye_roi = [np.min(right_iris_landmarks[:, 0]), np.min(right_iris_landmarks[:, 1]), np.max(right_iris_landmarks[:, 0]), np.max(right_iris_landmarks[:, 1])]
+                    eyes_depth = video.get_depth([left_eye_roi, right_eye_roi])
                 #frame = video.draw_spatial_data(frame, eyes_depth)
             pixel_distance, metric_distance = eye_converter(frame.copy(), video, left_iris_landmarks[0], right_iris_landmarks[0], landmarks[:, 1], landmarks[:, 8], warpped=False, left_eye_depth_mm=eyes_depth[0].spatialCoordinates.z, right_eye_depth_mm=eyes_depth[1].spatialCoordinates.z)
             # Perform face alignment
