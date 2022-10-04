@@ -25,14 +25,15 @@ class BlinkCounter:
         return self.num_blinks
 
     def draw_blinks(self, frame):
+        right_margin = 350
+        top_margin = 200
         frame = cv2.putText(
             frame,
-            "Num. Blink: " + str(self.num_blinks),
-            (50, 50),
+            "Number of blinks:  " + str(self.num_blinks),
+            (frame.shape[1] - right_margin, top_margin),
             cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 0),
-            2,
-            cv2.LINE_AA,
+            0.7,
+            (127, 0, 127),
+            2
         )
         return frame

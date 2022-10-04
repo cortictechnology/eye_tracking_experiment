@@ -95,6 +95,7 @@ class IrisDetection:
     def draw_iris(self, frame, right_iris_landmarks, left_iris_landmarks, left_depth, right_depth):
         if frame is None or right_iris_landmarks is None or left_iris_landmarks is None:
             return frame
+        
         iris_landmarks = np.concatenate(
             [
                 right_iris_landmarks,

@@ -135,19 +135,23 @@ def eye_converter(frame, video, left_eye_2d, right_eye_2d, face_center_p1_2d, fa
         #cv2.imshow("Eye distance (Unwarpped)", frame)
         return (left_eye_dist_px, right_eye_dist_px), (left_eye_dist_mm, right_eye_dist_mm)
 
-def draw_gaze(a,b,c,d,image_in, pitchyaw, thickness=2, color=(255, 255, 0),sclae=2.0):
+def draw_gaze(left_eye, right_eye, image_in, pitchyaw, thickness=1, color=(255, 255, 0), sclae=2.0):
     """Draw gaze angle on given image with a given eye positions."""
-    image_out = image_in
+    image_out = image_in.copy()
     (h, w) = image_in.shape[:2]
-    length = w/2
-    pos = (int(a+c / 2.0), int(b+d / 2.0))
+    length = w / 4
+    left_pos = (int(left_eye[0, 0] * w), int(left_eye[0, 1] * h))
+    right_pos = (int(right_eye[0, 0] * w), int(right_eye[0, 1] * h))
     if len(image_out.shape) == 2 or image_out.shape[2] == 1:
         image_out = cv2.cvtColor(image_out, cv2.COLOR_GRAY2BGR)
     dx = -length * np.sin(pitchyaw[0]) * np.cos(pitchyaw[1])
     dy = -length * np.sin(pitchyaw[1])
-    cv2.arrowedLine(image_out, tuple(np.round(pos).astype(np.int32)),
-                   tuple(np.round([pos[0] + dx, pos[1] + dy]).astype(int)), color,
-                   thickness, cv2.LINE_AA, tipLength=0.18)
+    cv2.arrowedLine(image_out, tuple(np.round(left_pos).astype(np.int32)),
+                   tuple(np.round([left_pos[0] + dx, left_pos[1] + dy]).astype(int)), color,
+                   thickness, cv2.LINE_AA, tipLength=0.1)
+    cv2.arrowedLine(image_out, tuple(np.round(right_pos).astype(np.int32)),
+                   tuple(np.round([right_pos[0] + dx, right_pos[1] + dy]).astype(int)), color,
+                   thickness, cv2.LINE_AA, tipLength=0.1)
     return image_out    
 
 def select_device(device='', batch_size=None):

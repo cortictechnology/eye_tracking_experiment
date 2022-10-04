@@ -78,23 +78,24 @@ class GazeEstimation:
 
         return pitch, yaw
 
-    def draw_gaze(self, frame, detected_faces, pitch, yaw):
-        if frame is not None and detected_faces is not None and pitch is not None and yaw is not None:
-            for i in range(len(detected_faces)):
-                face_coordinates = detected_faces[i]
-                x_min = int(face_coordinates[0] * self.frame_width)
-                y_min = int(face_coordinates[1] * self.frame_height)
-                x_max = int(face_coordinates[2] * self.frame_width)
-                y_max = int(face_coordinates[3] * self.frame_height)
-                if x_min < 0:
-                    x_min = 0
-                if y_min < 0:
-                    y_min = 0
-                if x_max >= self.frame_width:
-                    x_max = self.frame_width - 1
-                if y_max >= self.frame_height:
-                    y_max = self.frame_height - 1
-                bbox_width = x_max - x_min
-                bbox_height = y_max - y_min
-                frame = draw_gaze(x_min, y_min, bbox_width, bbox_height, frame, (pitch[i], yaw[i]), color=(0,0,255))
+    def draw_gaze(self, frame, left_eye, right_eye, pitch, yaw):
+        if frame is not None and left_eye is not None and right_eye is not None and pitch is not None and yaw is not None:
+            frame = draw_gaze(left_eye, right_eye, frame, (pitch[0], yaw[0]), color=(0,0,255))
+            # for i in range(len(detected_faces)):
+            #     face_coordinates = detected_faces[i]
+            #     x_min = int(face_coordinates[0] * self.frame_width)
+            #     y_min = int(face_coordinates[1] * self.frame_height)
+            #     x_max = int(face_coordinates[2] * self.frame_width)
+            #     y_max = int(face_coordinates[3] * self.frame_height)
+            #     if x_min < 0:
+            #         x_min = 0
+            #     if y_min < 0:
+            #         y_min = 0
+            #     if x_max >= self.frame_width:
+            #         x_max = self.frame_width - 1
+            #     if y_max >= self.frame_height:
+            #         y_max = self.frame_height - 1
+            #     bbox_width = x_max - x_min
+            #     bbox_height = y_max - y_min
+                
         return frame

@@ -53,7 +53,7 @@ class VideoCapture:
             right = self.pipeline.create(dai.node.MonoCamera)
             stereo = self.pipeline.create(dai.node.StereoDepth)
             spatialLocationCalculator = self.pipeline.create(dai.node.SpatialLocationCalculator)
-            monoResolution = dai.MonoCameraProperties.SensorResolution.THE_720_P
+            monoResolution = dai.MonoCameraProperties.SensorResolution.THE_400_P
             left.setResolution(monoResolution)
             left.setBoardSocket(dai.CameraBoardSocket.LEFT)
             right.setResolution(monoResolution)
