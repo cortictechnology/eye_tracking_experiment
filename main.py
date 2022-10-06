@@ -139,6 +139,7 @@ def main(use_depth):
             #    aligned_pixel_distances.append(aligned_pixel_distance)
             metric_landmarks, pose_transform_mat, image_points, model_points, mp_rotation_vector, mp_translation_vector = head_pose_estimator.get_head_pose(landmarks)
             pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces)
+            
             facemesh_frame = facemesh_estimator.draw_facemesh(frame.copy(), landmarks)
             frame = cv2.addWeighted(frame, 0.6, facemesh_frame, 0.4, 0.0)
             frame = draw_face_depth(frame, face_depth)
