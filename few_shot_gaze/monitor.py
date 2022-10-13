@@ -44,6 +44,6 @@ class monitor:
         # assumes in-build laptop camera, located centered and 10 mm above display
         # update this function for you camera and monitor using: https://github.com/computer-vision/takahashi2012cvpr
         x_mon_pixel = np.ceil(int(self.w_pixels/2) - x_cam_mm * self.w_pixels / self.w_mm)
-        y_mon_pixel = np.ceil((y_cam_mm - 10.0) * self.h_pixels / self.h_mm)
+        y_mon_pixel = np.ceil((y_cam_mm - 37.5) * self.h_pixels / self.h_mm)
 
         return x_mon_pixel, y_mon_pixel

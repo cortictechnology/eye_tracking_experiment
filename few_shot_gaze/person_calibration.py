@@ -100,7 +100,7 @@ def collect_data(cap, mon, calib_points=9, rand_points=5):
         direction = random.choice(directions)
         img, g_t = create_image(mon, direction, i, (0, 0, 0), grid=True, total=calib_points)
         cv2.imshow('image', img)
-        cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         key_press = cv2.waitKey(0)
         if key_press == keys[direction]:
             THREAD_RUNNING = False
@@ -144,7 +144,7 @@ def collect_data(cap, mon, calib_points=9, rand_points=5):
     return calib_data
 
 
-def fine_tune(subject, data, process, facemesh_est, head_pose_est, mon, device, gaze_network, k, steps=1000, lr=1e-4, show=False):
+def fine_tune(subject, data, process, face_landmark_estimator, head_pose_est, mon, device, gaze_network, k, steps=1000, lr=1e-4, show=False):
 
     # collect person calibration data
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -172,7 +172,7 @@ def fine_tune(subject, data, process, facemesh_est, head_pose_est, mon, device, 
     fout.close()
 
     vid_cap = cv2.VideoCapture('%s_calib.avi' % subject)
-    data = process(subject, vid_cap, facemesh_est, head_pose_est, mon, device, gaze_network, por_available=True, show=show)
+    data = process(subject, vid_cap, face_landmark_estimator, head_pose_est, mon, device, gaze_network, por_available=True, show=show)
     vid_cap.release()
 
     n = len(data['image_a'])

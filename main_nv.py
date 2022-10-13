@@ -10,6 +10,7 @@ from head_pose_estimation import HeadPoseEstimation
 # from gaze_estimation import GazeEstimation
 from gaze_estimation_nv import GazeEstimation
 from blink_counter import BlinkCounter
+from face_landmarks_detection import FaceLandmarkDetection
 from utils import eye_converter
 
 EAR_THRESH = 0.1
@@ -108,7 +109,8 @@ def main(use_depth):
     iris_detector = IrisDetection(video.frame_width, video.frame_height, video.focal_length,smooth_factor=0.2)
     head_pose_estimator = HeadPoseEstimation(video.frame_width, video.frame_height, video.camera_matrix)
     gaze_estimator = GazeEstimation(video, video.frame_width, video.frame_height)
-    gaze_estimator.calibrate(video, facemesh_estimator, head_pose_estimator)
+    face_landmark_estimator = FaceLandmarkDetection()
+    gaze_estimator.calibrate(video, face_landmark_estimator, head_pose_estimator)
     # gaze_estimator = GazeEstimation(video.frame_width, video.frame_height)
     blink_count = BlinkCounter(EAR_THRESH, video.frame_width, video.frame_height)
     pixel_distances = []

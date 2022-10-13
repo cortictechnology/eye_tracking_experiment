@@ -16,6 +16,7 @@ from few_shot_gaze.normalization import normalize
 from few_shot_gaze.KalmanFilter1D import Kalman1D
 from few_shot_gaze.monitor import monitor
 from few_shot_gaze.person_calibration import collect_data, fine_tune
+from few_shot_gaze.head import PnPHeadPoseEstimator
 class GazeEstimation:
     def __init__(self, video, frame_width, frame_height):
         self.video = video
@@ -83,10 +84,12 @@ class GazeEstimation:
         self.kalman_filter_gaze.append(Kalman1D(sz=100, R=0.01 ** 2))
         self.mon = monitor()
         self.undistorter = Undistorter(self.video.camera_matrix, self.video.camera_distortion)
+        self.head_pose_estimator = PnPHeadPoseEstimator()
+
         # self.softmax = nn.Softmax(dim=1)
         # self.idx_tensor = [idx for idx in range(90)]
         # self.idx_tensor = torch.FloatTensor(self.idx_tensor).to(self.compute_device)
-    def process(self, subject, cap, facemesh_estimator, head_pose_estimator, mon, device, gaze_network, por_available=False, show=False):
+    def process(self, subject, cap, face_landmark_estimator, head_pose_estimator, mon, device, gaze_network, por_available=False, show=False):
 
         g_t = None
         data = {'image_a': [], 'gaze_a': [], 'head_a': [], 'R_gaze_a': [], 'R_head_a': []}
@@ -96,16 +99,27 @@ class GazeEstimation:
 
         frames_read = 0
         ret, img = cap.read()
+        # img = cv2.imread('./michael_face.jpg')
         while ret:
+            print(0)
             img = self.undistorter.apply(img)
             if por_available:
                 g_t = targets[frames_read]
             frames_read += 1
+            print(0.1)
 
             # detect face
-            landmarks, detected_faces = facemesh_estimator.get_facemesh(img)
+            detected_faces, landmarks = face_landmark_estimator.detect_landmarks(img)
+            print(0.2)
+
             if len(detected_faces) > 0:
                 face_location = detected_faces[0]
+                face_location[0] *= self.video.frame_width
+                face_location[1] *= self.video.frame_height
+                face_location[2] *= self.video.frame_width
+                face_location[3] *= self.video.frame_height
+                print(face_location)
+    
                 # use kalman filter to smooth bounding box position
                 # assume work with complex numbers:
                 output_tracked = self.kalman_filters[0].update(face_location[0] + 1j * face_location[1])
@@ -113,6 +127,10 @@ class GazeEstimation:
                 output_tracked = self.kalman_filters[1].update(face_location[2] + 1j * face_location[3])
                 face_location[2], face_location[3] = np.real(output_tracked), np.imag(output_tracked)
 
+
+                landmarks[:, 0] *= self.video.frame_width
+                landmarks[:, 1] *= self.video.frame_height
+                print("landmarks", landmarks)
                 # # run Kalman filter on landmarks to smooth them
                 # for i in range(68):
                 #     kalman_filters_landm_complex = self.kalman_filters_landm[i].update(pts[i, 0] + 1j * pts[i, 1])
@@ -121,13 +139,23 @@ class GazeEstimation:
                 # compute head pose
                 # fx, _, cx, _, fy, cy, _, _, _ = self.video.camera_matrix.flatten()
                 # camera_parameters = np.asarray([fx, fy, cx, cy])
-                metric_landmarks, pose_transform_mat, image_points, model_points, rvec, tvec = head_pose_estimator.get_head_pose(landmarks)
+
+                fx, _, cx, _, fy, cy, _, _, _ = self.video.camera_matrix.flatten()
+                camera_parameters = np.asarray([fx, fy, cx, cy])
+                rvec, tvec = head_pose_estimator.fit_func(landmarks, camera_parameters)
+
+                # scaled_landmarks = landmarks.copy()
+                # scaled_landmarks[0, :] *= self.video.frame_width
+                # scaled_landmarks[1, :] *= self.video.frame_height
+                # metric_landmarks, pose_transform_mat, image_points, model_points, rvec, tvec = head_pose_estimator.get_head_pose(landmarks)
 
                 ######### GAZE PART #########
 
                 # create normalized eye patch and gaze and head pose value,
                 # if the ground truth point of regard is given
                 head_pose = (rvec, tvec)
+                print("r", rvec)
+                print("t", tvec)
                 por = None
                 if por_available:
                     por = np.zeros((3, 1))
@@ -181,11 +209,14 @@ class GazeEstimation:
 
                 # compute the ground truth POR if the
                 # ground truth is available
+                print(1)
                 R_head_a = calculate_rotation_matrix(h_n)
                 R_gaze_a = np.zeros((1, 3, 3))
+                print(2)
                 if type(g_n) is np.ndarray:
                     R_gaze_a = calculate_rotation_matrix(g_n)
 
+                    print(3)
                     # verify that g_n can be transformed back
                     # to the screen's pixel location shown
                     # during calibration
@@ -201,6 +232,7 @@ class GazeEstimation:
 
                     x_pixel_gt, y_pixel_gt = mon.camera_to_monitor(por_cam_x, por_cam_y)
                     # verified for correctness of calibration targets
+                print(4)
 
                 input_dict = {
                     'image_a': processed_patch,
@@ -221,18 +253,19 @@ class GazeEstimation:
 
         return data
 
-    def calibrate(self, video, facemesh_estimator, head_pose_estimator):
+    def calibrate(self, video, face_landmark_estimator, head_pose_estimator):
         data = collect_data(video, self.mon, calib_points=9, rand_points=4)
         # adjust steps and lr for best results
         # To debug calibration, set show=True
-        self.model = fine_tune("test", data, self.process, facemesh_estimator, head_pose_estimator, self.mon, self.compute_device, self.model, 9, steps=1000, lr=1e-5, show=False)
+        self.model = fine_tune("test", data, self.process, face_landmark_estimator, self.head_pose_estimator, self.mon, self.compute_device, self.model, 9, steps=1000, lr=1e-5, show=False)
 
 
     def preprocess_image(self, image):
         ycrcb = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
         ycrcb[:, :, 0] = cv2.equalizeHist(ycrcb[:, :, 0])
         image = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2RGB)
-        # cv2.imshow('processed patch', image)
+        cv2.imshow('processed patch', image)
+        cv2.waitKey(0)
         image = np.transpose(image, [2, 0, 1])  # CxHxW
         image = 2.0 * image / 255.0 - 1
         return image
