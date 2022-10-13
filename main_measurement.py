@@ -1,4 +1,5 @@
 import cv2
+import os
 import numpy as np
 import time
 import csv
@@ -7,8 +8,7 @@ from face_alignment import FaceAlignment
 from facemesh_estimation import FaceMeshEstimation
 from iris_detection import IrisDetection
 from head_pose_estimation import HeadPoseEstimation
-# from gaze_estimation import GazeEstimation
-from gaze_estimation_nv import GazeEstimation
+from gaze_estimation import GazeEstimation
 from blink_counter import BlinkCounter
 from utils import eye_converter
 
@@ -16,11 +16,12 @@ EAR_THRESH = 0.1
 
 record_data = False
 
-def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances):
+def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances, out_dir='./'):
     right_eye_pixels = []
     left_eye_pixels = []
     right_eye_metric = []
     left_eye_metric = []
+    pupil_dist_metric = []
     warpped_right_eye_pixels = []
     warpped_left_eye_pixels = []
 
@@ -30,12 +31,12 @@ def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances)
         right_eye_pixels.append([i, pixel[1]])
 
     fields = ['Frame', 'Pixel Distance'] 
-    with open('right_eye_pixel.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'right_eye_pixel.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
         write.writerows(right_eye_pixels)
-    with open('left_eye_pixel.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'left_eye_pixel.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
@@ -45,18 +46,25 @@ def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances)
         metric = metric_distances[i]
         left_eye_metric.append([i, metric[0]])
         right_eye_metric.append([i, metric[1]])
+        pupil_dist_metric.append([i, metric[0] + metric[1]])
+
 
     fields = ['Frame', 'Metric Distance'] 
-    with open('right_eye_metric.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'right_eye_metric.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
         write.writerows(right_eye_metric)
-    with open('left_eye_metric.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'left_eye_metric.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
         write.writerows(left_eye_metric)
+    with open(os.path.join(out_dir, 'pupil_dist_metric.csv'), 'w') as f:      
+        # using csv.writer method from CSV package
+        write = csv.writer(f)
+        write.writerow(fields)
+        write.writerows(pupil_dist_metric)
 
     for i in range(len(aligned_pixel_distances)):
         pixel = pixel_distances[i]
@@ -64,12 +72,12 @@ def save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances)
         warpped_right_eye_pixels.append([i, pixel[1]])
 
     fields = ['Frame', 'Warpped Pixel Distance'] 
-    with open('warpped_right_eye_pixel.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'warpped_right_eye_pixel.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
         write.writerows(warpped_right_eye_pixels)
-    with open('warpped_left_eye_pixel.csv', 'w') as f:      
+    with open(os.path.join(out_dir, 'warpped_left_eye_pixel.csv'), 'w') as f:      
         # using csv.writer method from CSV package
         write = csv.writer(f)
         write.writerow(fields)
@@ -81,8 +89,8 @@ def draw_face_depth(frame, depth):
     margin = 50
     frame = cv2.rectangle(frame, (margin, frame.shape[0] - margin), (margin + bar_width, frame.shape[0] - margin - bar_height), (255, 255, 255), 2)
     frame = cv2.putText(frame, "0 cm", (margin, int(frame.shape[0] - margin / 2.2)), cv2.FONT_HERSHEY_SIMPLEX, 1, (144,238,144), 2)
-    frame = cv2.putText(frame, "100 cm", (margin, int(frame.shape[0] - margin - bar_height - margin / 4.5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (144,238,144), 2)
-    depth_bar_height = int(depth / 1000 * bar_height)
+    frame = cv2.putText(frame, "200 cm", (margin, int(frame.shape[0] - margin - bar_height - margin / 4.5)), cv2.FONT_HERSHEY_SIMPLEX, 1, (144,238,144), 2)
+    depth_bar_height = int(depth / 2000 * bar_height)
     frame = cv2.rectangle(frame, (margin + 2, frame.shape[0] - margin - 2), (margin + bar_width - 2, frame.shape[0] - margin - depth_bar_height), (144,238,144), -1)
     frame = cv2.putText(frame, str(int(depth/10)) + " cm", (margin + bar_width + 10, frame.shape[0] - margin - depth_bar_height + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (144, 238, 144), 2)
     return frame
@@ -99,24 +107,43 @@ def draw_eye_displacement(frame, pixel_distance, metric_distance):
     cv2.putText(frame, " " + str(round(metric_distance[1])) + " mm" , (frame.shape[1] - right_margin + text_margin, top_margin + 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (127, 0, 127), 2)
     return frame
 
-def main(use_depth):
+def main(out_dir, use_depth, use_1080p=False, use_720p_mono=False, extended_disparity=False):
     global record_data
-    video = VideoCapture(use_depth=use_depth)
-    ref_photo = cv2.imread("./face_photos/michael.png")
+    record_data = True
+    if (not os.path.exists(out_dir)):
+        os.makedirs(out_dir)
+        os.makedirs(os.path.join(out_dir, 'frames'))
+        os.makedirs(os.path.join(out_dir, 'depth_frames'))
+    video = VideoCapture(use_depth=False, use_1080p=use_1080p, use_720p_mono=use_720p_mono, extended_disparity=extended_disparity, get_depth_map=False)
+    ref_photo = cv2.imread("./face_photos/minyang.jpg")
     facemesh_estimator = FaceMeshEstimation()
     face_aligner = FaceAlignment(ref_photo, facemesh_estimator)
     iris_detector = IrisDetection(video.frame_width, video.frame_height, video.focal_length,smooth_factor=0.2)
     head_pose_estimator = HeadPoseEstimation(video.frame_width, video.frame_height, video.camera_matrix)
-    gaze_estimator = GazeEstimation(video, video.frame_width, video.frame_height)
-    gaze_estimator.calibrate(video, facemesh_estimator, head_pose_estimator)
-    # gaze_estimator = GazeEstimation(video.frame_width, video.frame_height)
+    gaze_estimator = GazeEstimation(video.frame_width, video.frame_height)
     blink_count = BlinkCounter(EAR_THRESH, video.frame_width, video.frame_height)
     pixel_distances = []
     metric_distances = []
     aligned_pixel_distances = []
+    idx = 0
+    ts = []
     while True:
-        #t1 = time.time()
-        frame, frame_rgb = video.get_frame()
+        t1 = time.time()
+        frame, frame_rgb = video.get_frame(get_depth=False)
+        t_get_frames = time.time() - t1
+        print(1 / t_get_frames)
+        ts.append(t_get_frames)
+        if (len(ts) > 1000):
+            break
+        continue
+
+        # frame, frame_rgb = video.get_frame(get_depth=False)
+        frame_depth = (frame_depth / 3000.0 * 255).astype(np.uint8)
+        colored_frame_depth = cv2.applyColorMap(np.clip(frame_depth, 0, 255), cv2.COLORMAP_JET)
+        blended = cv2.addWeighted(frame, 0.5, colored_frame_depth, 0.5, 0)
+        cv2.imshow('depth', blended)
+        cv2.imwrite(os.path.join(out_dir, 'depth_frames', '%d.png' % idx), blended)
+        # frame, frame_rgb = video.get_frame()
         if frame is not None and frame_rgb is not None:
             landmarks, detected_faces = facemesh_estimator.get_facemesh(frame_rgb)
             num_blinks = blink_count.count_blink(landmarks)
@@ -126,9 +153,11 @@ def main(use_depth):
                 if right_iris_landmarks is not None and left_iris_landmarks is not None:
                     left_eye_roi = [np.min(left_iris_landmarks[:, 0]), np.min(left_iris_landmarks[:, 1]), np.max(left_iris_landmarks[:, 0]), np.max(left_iris_landmarks[:, 1])]
                     right_eye_roi = [np.min(right_iris_landmarks[:, 0]), np.min(right_iris_landmarks[:, 1]), np.max(right_iris_landmarks[:, 0]), np.max(right_iris_landmarks[:, 1])]
+                    # close_obj_roi = [0.46, 0.83, 0.475, 0.86] #35cm
+                    # middle_obj_roi = [0.1, 0.45, 0.11, 0.47] #64cm
+                    # far_obj_roi = [0.255, 0.475, 0.265, 0.495] #122cm
                     eyes_depth = video.get_depth([left_eye_roi, right_eye_roi])
                     face_depth = (eyes_depth[0].spatialCoordinates.z + eyes_depth[1].spatialCoordinates.z) / 2
-                #frame = video.draw_spatial_data(frame, eyes_depth)
             pixel_distance, metric_distance = eye_converter(frame.copy(), video, left_iris_landmarks[0], right_iris_landmarks[0], landmarks[:, 1], landmarks[:, 8], warpped=False, left_eye_depth_mm=eyes_depth[0].spatialCoordinates.z, right_eye_depth_mm=eyes_depth[1].spatialCoordinates.z)
             # Perform face alignment
             #aligned_frame, aligned_landmarks, aligned_right_iris, aligned_left_iris = face_aligner.get_aligned_face(frame, landmarks, right_iris_landmarks, left_iris_landmarks)
@@ -141,7 +170,6 @@ def main(use_depth):
                 metric_distances.append(metric_distance)
             #    aligned_pixel_distances.append(aligned_pixel_distance)
             metric_landmarks, pose_transform_mat, image_points, model_points, mp_rotation_vector, mp_translation_vector = head_pose_estimator.get_head_pose(landmarks)
-            pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces, (mp_rotation_vector, mp_translation_vector), show=False)
             # pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces)
             
             facemesh_frame = facemesh_estimator.draw_facemesh(frame.copy(), landmarks)
@@ -152,27 +180,28 @@ def main(use_depth):
             frame = facemesh_estimator.draw_detected_face(frame, detected_faces)
             frame = iris_detector.draw_iris(frame, right_iris_landmarks, left_iris_landmarks, left_depth, right_depth)
             frame = head_pose_estimator.draw_head_pose(frame, model_points, mp_rotation_vector, mp_translation_vector)
-            frame = gaze_estimator.draw_gaze(frame, left_iris_landmarks, right_iris_landmarks, pitch, yaw)
+            # frame = gaze_estimator.draw_gaze(frame, left_iris_landmarks, right_iris_landmarks, pitch, yaw)
             # if face_aligner.cropped_eye_image is not None:
             #     frame[0:face_aligner.crop_frame_height, (video.frame_width-face_aligner.crop_frame_width):video.frame_width] = face_aligner.cropped_eye_image
             # if aligned_crop_eyes is not None:
             #     frame[0:aligned_crop_height, (video.frame_width-aligned_crop_width):video.frame_width] = cv2.addWeighted(frame[0:aligned_crop_height, (video.frame_width-aligned_crop_width):video.frame_width], 0.5, aligned_crop_eyes, 0.5, 0.0)
             #print("Total time:", time.time() - t1)
             cv2.imshow("Frame", frame)
+            cv2.imwrite(os.path.join(out_dir, 'frames', '%d.png' % idx), frame)
             key = cv2.waitKey(1)
             if key == ord('q'):
+                save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances, out_dir=out_dir)
                 break
-            elif key == ord("r"):
-                if record_data:
-                    print("Stop data recording")
-                    record_data = False
-                    save_data_to_csv(pixel_distances, metric_distances, aligned_pixel_distances)
-                    pixel_distances = []
-                    metric_distances = []
-                    aligned_pixel_distances = []
-                else:
-                    print("Start recording data")
-                    record_data = True
+
+    print("average fps: ", 1/np.average(ts))
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-o', '--output', default='output', type=str)
+parser.add_argument('--use_720p_mono', action='store_true')
+parser.add_argument('--use_1080p', action='store_true')
+parser.add_argument('--extended_disparity', action='store_true')
 
 if __name__ == "__main__":
-    main(use_depth=True)
+    args = parser.parse_args()
+    main(out_dir=args.output, use_depth=True, use_1080p=args.use_1080p, use_720p_mono=args.use_720p_mono, extended_disparity=args.extended_disparity)

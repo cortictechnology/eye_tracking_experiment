@@ -29,7 +29,7 @@ class EosHeadPoseEstimator(object):
 
     def __init__(self):
         cwd = os.path.dirname(__file__)
-        base_dir = cwd + '/eos'
+        base_dir = cwd + '/few_shot_gaze/eos'
 
         model = eos.morphablemodel.load_model(base_dir + '/share/sfm_shape_3448.bin')
         self.blendshapes = eos.morphablemodel.load_blendshapes(
@@ -106,48 +106,49 @@ class PnPHeadPoseEstimator(object):
         self.sfm_points_ibug_subset -= between_eye_point.reshape(1, 3)
         self.sfm_points_for_pnp -= between_eye_point.reshape(1, 3)
 
-    # def fit_func(self, landmarks, camera_matrix):
-    #     landmarks = np.array([
-    #         landmarks[i - 1, :]
-    #         for i in self.ibug_ids_to_use
-    #     ], dtype=np.float64)
-    #     # fx, fy, cx, cy = camera_parameters
+    def fit_func(self, landmarks, camera_parameters):
+        landmarks = np.array([
+            landmarks[i - 1, :]
+            for i in self.ibug_ids_to_use
+        ], dtype=np.float64)
+        fx, fy, cx, cy = camera_parameters
 
-    #     # Initial fit
-    #     # camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
-    #     success, rvec, tvec, inliers = cv2.solvePnPRansac(self.sfm_points_for_pnp, landmarks,
-    #                                                       camera_matrix, None, flags=cv2.SOLVEPNP_EPNP)
+        # Initial fit
+        camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
+        print(landmarks, "------", camera_matrix, "+++++++", self.sfm_points_for_pnp)
+        success, rvec, tvec, inliers = cv2.solvePnPRansac(self.sfm_points_for_pnp, landmarks,
+                                                          camera_matrix, None, flags=cv2.SOLVEPNP_EPNP)
 
-    #     # Second fit for higher accuracy
-    #     success, rvec, tvec = cv2.solvePnP(self.sfm_points_for_pnp, landmarks, camera_matrix, None,
-    #                                        rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_ITERATIVE)
+        # Second fit for higher accuracy
+        success, rvec, tvec = cv2.solvePnP(self.sfm_points_for_pnp, landmarks, camera_matrix, None,
+                                           rvec=rvec, tvec=tvec, useExtrinsicGuess=True, flags=cv2.SOLVEPNP_ITERATIVE)
 
-    #     return rvec, tvec
+        return rvec, tvec
 
-    # def project_model(self, rvec, tvec, camera_parameters):
-    #     fx, fy, cx, cy = camera_parameters
-    #     camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
-    #     points, _ = cv2.projectPoints(self.sfm_points_ibug_subset, rvec, tvec, camera_matrix, None)
-    #     return points
+    def project_model(self, rvec, tvec, camera_parameters):
+        fx, fy, cx, cy = camera_parameters
+        camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
+        points, _ = cv2.projectPoints(self.sfm_points_ibug_subset, rvec, tvec, camera_matrix, None)
+        return points
 
 
-    # def drawPose(self, img, r, t, cam, dist):
+    def drawPose(self, img, r, t, cam, dist):
 
-    #     modelAxes = np.array([
-    #         np.array([0., -20., 0.]).reshape(1, 3),
-    #         np.array([50., -20., 0.]).reshape(1, 3),
-    #         np.array([0., -70., 0.]).reshape(1, 3),
-    #         np.array([0., -20., -50.]).reshape(1, 3)
-    #     ])
+        modelAxes = np.array([
+            np.array([0., -20., 0.]).reshape(1, 3),
+            np.array([50., -20., 0.]).reshape(1, 3),
+            np.array([0., -70., 0.]).reshape(1, 3),
+            np.array([0., -20., -50.]).reshape(1, 3)
+        ])
 
-    #     projAxes, jac = cv2.projectPoints(modelAxes, r, t, cam, dist)
+        projAxes, jac = cv2.projectPoints(modelAxes, r, t, cam, dist)
 
-    #     cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
-    #              (int(projAxes[1, 0, 0]), int(projAxes[1, 0, 1])),
-    #              (0, 255, 255), 2)
-    #     cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
-    #              (int(projAxes[2, 0, 0]), int(projAxes[2, 0, 1])),
-    #              (255, 0, 255), 2)
-    #     cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
-    #              (int(projAxes[3, 0, 0]), int(projAxes[3, 0, 1])),
-    #              (255, 255, 0), 2)
+        cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
+                 (int(projAxes[1, 0, 0]), int(projAxes[1, 0, 1])),
+                 (0, 255, 255), 2)
+        cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
+                 (int(projAxes[2, 0, 0]), int(projAxes[2, 0, 1])),
+                 (255, 0, 255), 2)
+        cv2.line(img, (int(projAxes[0, 0, 0]), int(projAxes[0, 0, 1])),
+                 (int(projAxes[3, 0, 0]), int(projAxes[3, 0, 1])),
+                 (255, 255, 0), 2)

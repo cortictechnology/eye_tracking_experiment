@@ -19,11 +19,11 @@ class monitor:
         # default_screen = screen.get_default()
         # num = default_screen.get_number()
 
-        self.h_mm = 685 #default_screen.get_monitor_height_mm(num)
-        self.w_mm = 1230 #default_screen.get_monitor_width_mm(num)
+        self.h_mm = 206 #default_screen.get_monitor_height_mm(num)
+        self.w_mm = 307 #default_screen.get_monitor_width_mm(num)
 
-        self.h_pixels = 2160 #default_screen.get_height()
-        self.w_pixels = 4096 #default_screen.get_width()
+        self.h_pixels = 1964 #default_screen.get_height()
+        self.w_pixels = 3024 #default_screen.get_width()
 
     def monitor_to_camera(self, x_pixel, y_pixel):
 
@@ -34,9 +34,10 @@ class monitor:
         # z_cam_mm = 0.0
 
         # camera_location_mm = (512, 565, 135)
-        x_cam_mm = (x_pixel/self.w_pixels) * self.w_mm - (self.w_mm - 512.0)
-        y_cam_mm = (y_pixel/self.h_pixels) * self.h_mm - 565.0
-        z_cam_mm = 135.0
+        # x_cam_mm = (x_pixel/self.w_pixels * (52.5/122)) * self.w_mm# - (self.w_mm - 512.0)
+        x_cam_mm = ((int(self.w_pixels/2) - x_pixel)/self.w_pixels) * self.w_mm
+        y_cam_mm = (y_pixel/self.h_pixels) * self.h_mm + 37.5
+        z_cam_mm = 0
         return x_cam_mm, y_cam_mm, z_cam_mm
 
     def camera_to_monitor(self, x_cam_mm, y_cam_mm):
