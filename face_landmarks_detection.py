@@ -17,13 +17,12 @@ class FaceLandmarkDetection:
         landmarks = None
         if frame_rgb is not None:
             #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            print('landmark 1')
             boxes, landmarks, states = self.facer.run(frame_rgb)
-            print('landmark 2')
-            landmarks = landmarks[0, :, :]
+            if (landmarks.shape[0] > 0):
+                landmarks = landmarks[0, :, :]
 
-            landmarks[:, 0] = landmarks[:, 0] / frame_rgb.shape[1]
-            landmarks[:, 1] = landmarks[:, 1] / frame_rgb.shape[0]
+                landmarks[:, 0] = landmarks[:, 0] / frame_rgb.shape[1]
+                landmarks[:, 1] = landmarks[:, 1] / frame_rgb.shape[0]
 
         return boxes, landmarks
 

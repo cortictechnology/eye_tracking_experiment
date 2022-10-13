@@ -143,7 +143,8 @@ def main(use_depth):
                 metric_distances.append(metric_distance)
             #    aligned_pixel_distances.append(aligned_pixel_distance)
             metric_landmarks, pose_transform_mat, image_points, model_points, mp_rotation_vector, mp_translation_vector = head_pose_estimator.get_head_pose(landmarks)
-            pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces, (mp_rotation_vector, mp_translation_vector), show=False)
+            _, landmark_68 = face_landmark_estimator.detect_landmarks(frame_rgb)
+            pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces, landmark_68, show=False)
             # pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces)
             
             facemesh_frame = facemesh_estimator.draw_facemesh(frame.copy(), landmarks)
