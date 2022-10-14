@@ -115,7 +115,6 @@ class PnPHeadPoseEstimator(object):
 
         # Initial fit
         camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]], dtype=np.float64)
-        print(landmarks, "------", camera_matrix, "+++++++", self.sfm_points_for_pnp)
         success, rvec, tvec, inliers = cv2.solvePnPRansac(self.sfm_points_for_pnp, landmarks,
                                                           camera_matrix, None, flags=cv2.SOLVEPNP_EPNP)
 

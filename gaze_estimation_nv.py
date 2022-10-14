@@ -63,10 +63,10 @@ class GazeEstimation:
             'gaze2.weight': maml_weights['layer02.weights'],
             'gaze2.bias':   maml_weights['layer02.bias'],
         })
-        self.model.load_state_dict(ted_weights)
-
-        # ted_weights = torch.load("test_gaze_network.pth.tar", map_location=self.compute_device)
         # self.model.load_state_dict(ted_weights)
+
+        ted_weights = torch.load("test_gaze_network.pth.tar", map_location=self.compute_device)
+        self.model.load_state_dict(ted_weights)
         self.model.to(self.compute_device)
         self.model.eval()
 
@@ -76,11 +76,11 @@ class GazeEstimation:
             # will be used for face detection over a single object
             self.kalman_filters.append(Kalman1D(sz=100, R=0.01 ** 2))
 
-        # self.kalman_filters_landm = list()
-        # for point in range(68):
-        #     # initialize Kalman filters for different coordinates
-        #     # will be used to smooth landmarks over the face for a single face tracking
-        #     self.kalman_filters_landm.append(Kalman1D(sz=100, R=0.005 ** 2))
+        self.kalman_filters_landm = list()
+        for point in range(68):
+            # initialize Kalman filters for different coordinates
+            # will be used to smooth landmarks over the face for a single face tracking
+            self.kalman_filters_landm.append(Kalman1D(sz=100, R=0.005 ** 2))
 
         self.kalman_filter_gaze = list()
         self.kalman_filter_gaze.append(Kalman1D(sz=100, R=0.01 ** 2))
@@ -116,7 +116,7 @@ class GazeEstimation:
                 face_location[1] *= self.video.frame_height
                 face_location[2] *= self.video.frame_width
                 face_location[3] *= self.video.frame_height
-                print(face_location)
+                # print(face_location)
     
                 # use kalman filter to smooth bounding box position
                 # assume work with complex numbers:
@@ -129,9 +129,9 @@ class GazeEstimation:
                 landmarks_scale[:, 0] *= self.video.frame_width
                 landmarks_scale[:, 1] *= self.video.frame_height
                 # # run Kalman filter on landmarks to smooth them
-                # for i in range(68):
-                #     kalman_filters_landm_complex = self.kalman_filters_landm[i].update(pts[i, 0] + 1j * pts[i, 1])
-                #     pts[i, 0], pts[i, 1] = np.real(kalman_filters_landm_complex), np.imag(kalman_filters_landm_complex)
+                for i in range(68):
+                    kalman_filters_landm_complex = self.kalman_filters_landm[i].update(landmarks_scale[i, 0] + 1j * landmarks_scale[i, 1])
+                    landmarks_scale[i, 0], landmarks_scale[i, 1] = np.real(kalman_filters_landm_complex), np.imag(kalman_filters_landm_complex)
 
                 # compute head pose
                 # fx, _, cx, _, fy, cy, _, _, _ = self.video.camera_matrix.flatten()
@@ -206,14 +206,11 @@ class GazeEstimation:
 
                 # compute the ground truth POR if the
                 # ground truth is available
-                print(1)
                 R_head_a = calculate_rotation_matrix(h_n)
                 R_gaze_a = np.zeros((1, 3, 3))
-                print(2)
                 if type(g_n) is np.ndarray:
                     R_gaze_a = calculate_rotation_matrix(g_n)
 
-                    print(3)
                     # verify that g_n can be transformed back
                     # to the screen's pixel location shown
                     # during calibration
@@ -229,7 +226,6 @@ class GazeEstimation:
 
                     x_pixel_gt, y_pixel_gt = mon.camera_to_monitor(por_cam_x, por_cam_y)
                     # verified for correctness of calibration targets
-                print(4)
 
                 input_dict = {
                     'image_a': processed_patch,
@@ -291,7 +287,6 @@ class GazeEstimation:
                 fx, _, cx, _, fy, cy, _, _, _ = self.video.camera_matrix.flatten()
                 camera_parameters = np.asarray([fx, fy, cx, cy])
                 rvec, tvec = self.head_pose_estimator.fit_func(landmarks_scale, camera_parameters)
-
                 # create normalized eye patch and gaze and head pose value,
                 # if the ground truth point of regard is given
                 head_pose = (rvec, tvec)
@@ -309,11 +304,9 @@ class GazeEstimation:
                         }
                 [patch, h_n, g_n, inverse_M, gaze_cam_origin, gaze_cam_target] = normalize(entry, head_pose)
                 # cv2.imshow('raw patch', patch)
-
                 # estimate the PoR using the gaze network
                 processed_patch = self.preprocess_image(patch)
                 processed_patch = processed_patch[np.newaxis, :, :, :]
-
                 # Functions to calculate relative rotation matrices for gaze dir. and head pose
                 def R_x(theta):
                     sin_ = np.sin(theta)
@@ -387,10 +380,20 @@ class GazeEstimation:
                 self.model.eval()
                 output_dict = self.model(input_dict)
                 output = output_dict['gaze_a_hat']
-                output_np = np.squeeze(output.cpu().detach().numpy(), axis=0)
+                output_np = np.squeeze(output.data.cpu().numpy(), axis=0)
+                # print("gaze output:", output_np)
                 output_np /= np.linalg.norm(output_np)
-                yaw_predicted = np.arctan(output_np[1] / output_np[0])
-                pitch_predicted = np.arctan(np.sqrt(output_np[0] ** 2 + output_np[1]**2) / output_np[2])
+
+                # yaw_predicted = np.arctan(output_np[1] / output_np[0])
+                # pitch_predicted = np.arctan(np.sqrt(output_np[0] ** 2 + output_np[1]**2) / output_np[2])
+
+                pitch_predicted = np.arcsin(output_np[0])
+                yaw_predicted = np.arctan(output_np[1] / output_np[2])
+                print("pitch: ", pitch_predicted, " yaw: ", yaw_predicted)
+
+                output_tracked = self.kalman_filter_gaze[0].update(pitch_predicted + 1j * yaw_predicted)
+                pitch_predicted, yaw_predicted = np.real(output_tracked), np.imag(output_tracked)
+
                 pitch.append(pitch_predicted)
                 yaw.append(yaw_predicted)
                 if show:
@@ -404,9 +407,12 @@ class GazeEstimation:
                     g_cam_forward = g_cam_forward / np.linalg.norm(g_cam_forward)
 
                     d = -gaze_cam_origin[2] / g_cam_forward[2]
+                    print("d:", d)
                     por_cam_x = gaze_cam_origin[0] + d * g_cam_forward[0]
                     por_cam_y = gaze_cam_origin[1] + d * g_cam_forward[1]
                     por_cam_z = 0.0
+                    print("cam x:", por_cam_x, "cam y": por_cam_y)
+                    continue
 
                     x_pixel_hat, y_pixel_hat = self.mon.camera_to_monitor(por_cam_x, por_cam_y)
 
@@ -428,14 +434,14 @@ class GazeEstimation:
                     # also show the face:
                     # cv2.rectangle(img, (int(face_location[0]), int(face_location[1])),
                     #               (int(face_location[2]), int(face_location[3])), (255, 0, 0), 2)
-                    # self.landmarks_detector.plot_markers(img, pts)
+                    # self.landmarks_detector.plot_markers(img, landmarks_scale)
                     # self.head_pose_estimator.drawPose(img, rvec, tvec, self.cam_calib['mtx'], np.zeros((1, 4)))
                     # cv2.imshow('image', img)
         return pitch, yaw
 
-    def draw_gaze(self, frame, left_eye, right_eye, pitch, yaw):
+    def draw_gaze(self, frame, left_eye, right_eye, pitch, yaw, color=(0, 0, 255)):
         if frame is not None and left_eye is not None and right_eye is not None and pitch is not None and yaw is not None:
-            frame = draw_gaze(left_eye, right_eye, frame, (pitch[0], yaw[0]), color=(0,0,255))
+            frame = draw_gaze(left_eye, right_eye, frame, (pitch[0], yaw[0]), color=color)
             # for i in range(len(detected_faces)):
             #     face_coordinates = detected_faces[i]
             #     x_min = int(face_coordinates[0] * self.frame_width)

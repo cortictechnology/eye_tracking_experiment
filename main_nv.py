@@ -7,7 +7,7 @@ from face_alignment import FaceAlignment
 from facemesh_estimation import FaceMeshEstimation
 from iris_detection import IrisDetection
 from head_pose_estimation import HeadPoseEstimation
-# from gaze_estimation import GazeEstimation
+from gaze_estimation import GazeEstimation as GazeEstimation2
 from gaze_estimation_nv import GazeEstimation
 from blink_counter import BlinkCounter
 from face_landmarks_detection import FaceLandmarkDetection
@@ -110,8 +110,8 @@ def main(use_depth):
     head_pose_estimator = HeadPoseEstimation(video.frame_width, video.frame_height, video.camera_matrix)
     gaze_estimator = GazeEstimation(video, video.frame_width, video.frame_height)
     face_landmark_estimator = FaceLandmarkDetection()
-    gaze_estimator.calibrate(video, face_landmark_estimator, head_pose_estimator)
-    # gaze_estimator = GazeEstimation(video.frame_width, video.frame_height)
+    # gaze_estimator.calibrate(video, face_landmark_estimator, head_pose_estimator)
+    gaze_estimator2 = GazeEstimation2(video.frame_width, video.frame_height)
     blink_count = BlinkCounter(EAR_THRESH, video.frame_width, video.frame_height)
     pixel_distances = []
     metric_distances = []
@@ -145,7 +145,8 @@ def main(use_depth):
             metric_landmarks, pose_transform_mat, image_points, model_points, mp_rotation_vector, mp_translation_vector = head_pose_estimator.get_head_pose(landmarks)
             _, landmark_68 = face_landmark_estimator.detect_landmarks(frame_rgb)
             pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces, landmark_68, show=False)
-            # pitch, yaw = gaze_estimator.get_gaze(frame, detected_faces)
+            pitch2, yaw2 = gaze_estimator2.get_gaze(frame, detected_faces)
+            # print("pitch: ", pitch, " yaw: ", yaw)
             
             facemesh_frame = facemesh_estimator.draw_facemesh(frame.copy(), landmarks)
             frame = cv2.addWeighted(frame, 0.6, facemesh_frame, 0.4, 0.0)
@@ -156,6 +157,7 @@ def main(use_depth):
             frame = iris_detector.draw_iris(frame, right_iris_landmarks, left_iris_landmarks, left_depth, right_depth)
             frame = head_pose_estimator.draw_head_pose(frame, model_points, mp_rotation_vector, mp_translation_vector)
             frame = gaze_estimator.draw_gaze(frame, left_iris_landmarks, right_iris_landmarks, pitch, yaw)
+            frame = gaze_estimator.draw_gaze(frame, left_iris_landmarks, right_iris_landmarks, pitch2, yaw2, color=(255, 0, 0))
             # if face_aligner.cropped_eye_image is not None:
             #     frame[0:face_aligner.crop_frame_height, (video.frame_width-face_aligner.crop_frame_width):video.frame_width] = face_aligner.cropped_eye_image
             # if aligned_crop_eyes is not None:

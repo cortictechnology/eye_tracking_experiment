@@ -86,6 +86,7 @@ def collect_data(cap, mon, calib_points=9, rand_points=5):
     global frames
 
     cv2.namedWindow("image", cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     
 
     calib_data = {'frames': [], 'g_t': []}
@@ -100,7 +101,7 @@ def collect_data(cap, mon, calib_points=9, rand_points=5):
         direction = random.choice(directions)
         img, g_t = create_image(mon, direction, i, (0, 0, 0), grid=True, total=calib_points)
         cv2.imshow('image', img)
-        # cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
         key_press = cv2.waitKey(0)
         if key_press == keys[direction]:
             THREAD_RUNNING = False
@@ -139,8 +140,9 @@ def collect_data(cap, mon, calib_points=9, rand_points=5):
         else:
             THREAD_RUNNING = False
             th.join()
+    cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
     cv2.destroyAllWindows()
-
+    cv2.waitKey(1)
     return calib_data
 
 

@@ -8,6 +8,7 @@ import torchvision
 from PIL import Image
 from l2cs_model import L2CS
 from utils import draw_gaze
+from few_shot_gaze.KalmanFilter1D import Kalman1D
 
 class GazeEstimation:
     def __init__(self, frame_width, frame_height):
@@ -32,6 +33,8 @@ class GazeEstimation:
         self.softmax = nn.Softmax(dim=1)
         self.idx_tensor = [idx for idx in range(90)]
         self.idx_tensor = torch.FloatTensor(self.idx_tensor).to(self.compute_device)
+        self.kalman_filter_gaze = list()
+        self.kalman_filter_gaze.append(Kalman1D(sz=100, R=0.01 ** 2))
 
     def get_gaze(self, frame, detected_faces):
         pitch = []
@@ -72,6 +75,9 @@ class GazeEstimation:
                 
                 pitch_predicted= pitch_predicted.cpu().detach().numpy()* np.pi/180.0
                 yaw_predicted= yaw_predicted.cpu().detach().numpy()* np.pi/180.0
+
+                output_tracked = self.kalman_filter_gaze[0].update(pitch_predicted + 1j * yaw_predicted)
+                pitch_predicted, yaw_predicted = np.real(output_tracked), np.imag(output_tracked)
 
                 pitch.append(pitch_predicted)
                 yaw.append(yaw_predicted)
